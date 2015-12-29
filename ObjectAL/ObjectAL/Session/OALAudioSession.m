@@ -49,7 +49,7 @@ SYNTHESIZE_SINGLETON_FOR_CLASS_PROTOTYPE(OALAudioSession);
 
 
 #ifdef __IPHONE_OS_VERSION_MAX_ALLOWED
-
+#if !TARGET_OS_TV
 /** \cond */
 /**
  * (INTERNAL USE) Private methods for OALAudioSupport. 
@@ -115,6 +115,8 @@ SYNTHESIZE_SINGLETON_FOR_CLASS_PROTOTYPE(OALAudioSession);
 @end
 /** \endcond */
 
+#endif // !TARGET_OS_TV
+
 
 @implementation OALAudioSession
 
@@ -142,11 +144,13 @@ SYNTHESIZE_SINGLETON_FOR_CLASS(OALAudioSession);
 
         if(osVersion >= 6.0f)
         {
+#if !TARGET_OS_TV
             OAL_LOG_DEBUG(@"Adding notification observer for AVAudioSessionInterruptionNotification");
             [[NSNotificationCenter defaultCenter] addObserver:self
                                                      selector:@selector(handleInterruption:)
                                                          name:@"AVAudioSessionInterruptionNotification"
                                                        object:[AVAudioSession sharedInstance]];
+#endif // !TARGET_OS_TV
         }
 
 		// Set up defaults
@@ -254,7 +258,9 @@ SYNTHESIZE_SINGLETON_FOR_CLASS(OALAudioSession);
 }
 
 @synthesize handleInterruptions;
+#if !TARGET_OS_TV
 @synthesize audioSessionDelegate;
+#endif // !TARGET_OS_TV
 
 - (bool) honorSilentSwitch
 {
@@ -276,23 +282,35 @@ SYNTHESIZE_SINGLETON_FOR_CLASS(OALAudioSession);
 
 - (float) preferredIOBufferDuration
 {
+#if TARGET_OS_TV
+	return (float)[[AVAudioSession sharedInstance] preferredIOBufferDuration];
+#else
     return [self getFloatProperty:kAudioSessionProperty_PreferredHardwareIOBufferDuration];
+#endif
 }
 
 - (void) setPreferredIOBufferDuration:(float)value
 {
+#if TARGET_OS_TV
+	[[AVAudioSession sharedInstance] setPreferredIOBufferDuration:value error:NULL];
+#else
     [self setFloatProperty:kAudioSessionProperty_PreferredHardwareIOBufferDuration
                      value:value];
+#endif
 }
 
 - (bool) ipodPlaying
 {
+#if TARGET_OS_TV
+	return [[AVAudioSession sharedInstance] isOtherAudioPlaying];
+#else
 	return 0 != [self getIntProperty:kAudioSessionProperty_OtherAudioIsPlaying];
+#endif
 }
 
 - (NSString*) audioRoute
 {
-#if !TARGET_IPHONE_SIMULATOR
+#if !TARGET_IPHONE_SIMULATOR && !TARGET_OS_TV
 	return [self getStringProperty:kAudioSessionProperty_AudioRoute];
 #else /* !TARGET_IPHONE_SIMULATOR */
 	return nil;
@@ -301,7 +319,11 @@ SYNTHESIZE_SINGLETON_FOR_CLASS(OALAudioSession);
 
 - (float) hardwareVolume
 {
+#if TARGET_OS_TV
+	return [[AVAudioSession sharedInstance] outputVolume];
+#else
 	return [self getFloatProperty:kAudioSessionProperty_CurrentHardwareOutputVolume];
+#endif
 }
 
 - (bool) hardwareMuted
@@ -317,6 +339,8 @@ SYNTHESIZE_SINGLETON_FOR_CLASS(OALAudioSession);
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
+#if !TARGET_OS_TV
 
 - (UInt32) getIntProperty:(AudioSessionPropertyID) property
 {
@@ -382,6 +406,8 @@ SYNTHESIZE_SINGLETON_FOR_CLASS(OALAudioSession);
 	REPORT_AUDIOSESSION_CALL(result, @"Failed to get int property %08x", property);
 }
 
+#endif // !TARGET_OS_TV
+
 - (BOOL) _otherAudioPlaying
 {
     if([IOSVersion version] < 6)
@@ -430,7 +456,7 @@ SYNTHESIZE_SINGLETON_FOR_CLASS(OALAudioSession);
 		allowIpod = NO;
 		ipodDucking = NO;
 	}
-#if __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_3_1
+#if __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_3_1 && !TARGET_OS_TV
 	else if([AVAudioSessionCategoryAudioProcessing isEqualToString:audioSessionCategory])
 	{
 		honorSilentSwitch = NO;
@@ -475,6 +501,7 @@ SYNTHESIZE_SINGLETON_FOR_CLASS(OALAudioSession);
 	// Mixing uses software decoding and mixes with other apps.
 	bool mixing = allowIpod;
 	
+#if !TARGET_OS_TV
 	// Ducking causes other app audio to lower in volume while this session is active.
 	bool ducking = ipodDucking;
 	
@@ -483,6 +510,7 @@ SYNTHESIZE_SINGLETON_FOR_CLASS(OALAudioSession);
 	{
 		mixing = NO;
 	}
+#endif // !TARGET_OS_TV
 	
 	// Handle special case where useHardwareIfAvailable caused us to take the hardware.
 	if(!mixing && [AVAudioSessionCategoryAmbient isEqualToString:audioSessionCategory])
@@ -492,6 +520,7 @@ SYNTHESIZE_SINGLETON_FOR_CLASS(OALAudioSession);
 	
 	[self setAudioCategory:actualCategory];
 	
+#if !TARGET_OS_TV
 	if(!mixing)
 	{
 		// Setting OtherMixableAudioShouldDuck clears MixWithOthers.
@@ -503,6 +532,7 @@ SYNTHESIZE_SINGLETON_FOR_CLASS(OALAudioSession);
 		// Setting MixWithOthers clears OtherMixableAudioShouldDuck.
 		[self setIntProperty:kAudioSessionProperty_OverrideCategoryMixWithOthers value:mixing];
 	}
+#endif // !TARGET_OS_TV
 	
 #endif /* !TARGET_IPHONE_SIMULATOR */
 }
@@ -655,6 +685,8 @@ SYNTHESIZE_SINGLETON_FOR_CLASS(OALAudioSession);
 
 #pragma mark Interrupt Handling
 
+#if !TARGET_OS_TV
+
 // iOS 6.0+ interrupt handling
 - (void) handleInterruption:(NSNotification*) notification
 {
@@ -772,6 +804,7 @@ SYNTHESIZE_SINGLETON_FOR_CLASS(OALAudioSession);
 		[audioSessionDelegate inputIsAvailableChanged:isInputAvailable];
 	}
 }
+#endif // !TARGET_OS_TV
 
 
 @end

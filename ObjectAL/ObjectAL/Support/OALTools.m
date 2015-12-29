@@ -31,8 +31,7 @@
 #import "ObjectALMacros.h"
 #import "ARCSafe_MemMgmt.h"
 #import "OALNotifications.h"
-#import "CCFileLocator.h"
-#import "CCFile.h"
+#import "CCFileUtils.h"
 
 #if __CC_PLATFORM_IOS || __CC_PLATFORM_MAC
 
@@ -74,15 +73,14 @@ static NSBundle* g_defaultBundle;
 		return nil;
 	}
 	
-	NSError *err = nil;
-	CCFile *file = [[CCFileLocator sharedFileLocator] fileNamed:path error:&err];
-	if(err)
-	{
-		OAL_LOG_ERROR(@"Could not find full path of file %@ (%@)", path, err);
-		return nil;
-	}
+    NSString* fullPath = [[CCFileUtils sharedFileUtils] fullPathForFilenameIgnoringResolutions:path];
+    if(nil == fullPath)
+    {
+        OAL_LOG_ERROR(@"Could not find full path of file %@", path);
+        return nil;
+    }
 	
-	return file.url;
+	return [NSURL fileURLWithPath:fullPath];
 }
 
 + (void) notifyExtAudioError:(OSStatus)errorCode
@@ -95,7 +93,7 @@ static NSBundle* g_defaultBundle;
 		
 		switch(errorCode)
 		{
-#if !__CC_PLATFORM_ANDROID
+#if !__CC_PLATFORM_ANDROID && !TARGET_OS_TV
 #ifdef __IPHONE_3_1
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_3_1
 			case kExtAudioFileError_CodecUnavailableInputConsumed:
@@ -162,7 +160,7 @@ static NSBundle* g_defaultBundle;
 		
 		switch(errorCode)
 		{
-#if !__CC_PLATFORM_ANDROID
+#if !__CC_PLATFORM_ANDROID && !TARGET_OS_TV
 			case kAudioSessionNotInitialized:
 				errorString = @"Audio session not initialized";
 				postNotification = YES;

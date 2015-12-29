@@ -41,7 +41,7 @@
 /**
  * Handles the audio session and interrupts.
  */
-#if __CC_PLATFORM_IOS
+#if __CC_PLATFORM_IOS && !TARGET_OS_TV
 @interface OALAudioSession : NSObject <AVAudioSessionDelegate, OALSuspendManager>
 #else
 @interface OALAudioSession : NSObject <OALSuspendManager>
@@ -142,7 +142,7 @@
  */
 @property(nonatomic,readwrite,assign) bool handleInterruptions;
 
-#if __CC_PLATFORM_IOS
+#if __CC_PLATFORM_IOS && !TARGET_OS_TV
 /** Delegate that will receive all audio session events (WEAK reference).
  */
 @property(nonatomic,readwrite,assign) id<AVAudioSessionDelegate> audioSessionDelegate;
@@ -197,11 +197,13 @@ SYNTHESIZE_SINGLETON_FOR_CLASS_HEADER(OALAudioSession);
 
 #pragma mark Utility
 
+#if !TARGET_OS_TV
 /** Force an interrupt end. This can be useful in cases where a buggy OS
  * fails to end an interrupt.
  *
  * Be VERY CAREFUL when using this!
  */
 - (void) forceEndInterruption;
+#endif
 
 @end
